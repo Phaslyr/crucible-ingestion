@@ -293,6 +293,12 @@
     "ingestor": "EmiIngestor",
     "schema": "EmiIngestor_ab6afe.json"
   },
+  "b5028df34d087fd513a546a649289651aeb19211272fc0bde08cb154f2e1e24b": {
+    "dsid": "0tpf76zxfnvfd000hcxk4fratg",
+    "file": "ND_testSample_HAADF.sur",
+    "ingestor": "SurIngestor",
+    "schema": "SurIngestor_b5028d.json"
+  },
   "b6527d2fe46a740516fa7e0f8e5ca890dc965fb3e474f0cbbeba3ba292e7ec4f": {
     "dsid": "xxx",
     "file": "example_afm.ibw",
