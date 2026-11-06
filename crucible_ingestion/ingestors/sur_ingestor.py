@@ -1,6 +1,11 @@
+from .crucible_ingestor import CrucibleDatasetIngestor
+
+import logging
+
 from rsciio.digitalsurf import file_reader
 from pathlib import Path
 from typing import ClassVar
+
 import re
 
 import numpy as np
@@ -8,23 +13,27 @@ import matplotlib.pyplot as plt
 import io
 from PIL import Image
 
-import logging
-
-from .crucible_ingestor import CrucibleDatasetIngestor
-
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 class SurIngestor(CrucibleDatasetIngestor):
-    '''Simple .sur file ingestor'''
+    '''Full ingestor for reading .sur files from SPECTRE and other cathodoluminesence-capable microscopes'''
 
     dataset: list = []
     general_info: dict = {}
     instrument_info: dict = {}
     supported_filetypes: ClassVar[list[str]] = ['.sur']
 
+    def is_file_supported(self):
+        """Check if the file to upload is a supported sur file based on its extension and content."""
+        file_extension = Path(self.file_to_upload).suffix.lower()
+        return file_extension in self.supported_filetypes
+
     def setup_data(self):
-        dataset = file_reader(self.file_to_upload, lazy=False)
+        try:
+            dataset = file_reader(self.file_to_upload, lazy=False)
+        except Exception as e:
+            logger.error(f"Failed to parse file {e}")
 
         logger.info("# datasets: "+ str(len(dataset)))
         logger.info("NOTE: This number should be 1.")
@@ -40,11 +49,6 @@ class SurIngestor(CrucibleDatasetIngestor):
         self.dataset = dataset[0]
 
         super().setup_data()
-    
-    def is_file_supported(self):
-        """Check if the file to upload is a supported sur file based on its extension and content."""
-        file_extension = Path(self.file_to_upload).suffix.lower()
-        return file_extension in self.supported_filetypes
 
     def get_scientific_metadata(self):
         dataset = self.dataset
@@ -61,7 +65,7 @@ class SurIngestor(CrucibleDatasetIngestor):
         except KeyError as e:
             raise Exception("Scientific metadata not found or in unsupported format.")
 
-        logger.info(f'Got metadata from SUR: {self.scientific_metadata=}')
+        logger.info(f'Successfully parsed scientific metadata from .sur file.')
 
     # def get_dataset_metadata(self):
     #   super().get_dataset_metadata()
