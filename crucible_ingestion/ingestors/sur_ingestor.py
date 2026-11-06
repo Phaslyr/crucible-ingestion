@@ -71,9 +71,12 @@ class SurIngestor(CrucibleDatasetIngestor):
         projection = self.instrument_info.get("projection_mode", "")
         acquisition = self.general_info.get("acquisition_type", "")
 
+        if projection != "":
+            projection = projection[0] + projection[1:].lower()
+
         if acquisition == "HAADF" or acquisition == "ROI":
             detector = "Non-Pixelated"
-        elif acquisition == "HYPCard" or acquisition == "CCD":
+        elif acquisition == "HYP" or acquisition == "CL":
             detector = "Cathodoluminescence"
         else:
             detector = ""
@@ -81,14 +84,11 @@ class SurIngestor(CrucibleDatasetIngestor):
         measurements = [illumination, projection, detector]
         self.measurement = " ".join(filter(None, measurements))
 
-    def parse_instrument(self):
-        self.instrument_name = "SPECTRE"
-        super().parse_instrument()
-
     def get_thumbnails(self):
         try:
-            thumbnails = self.generate_thumbnail()
-            self.add_thumbnail(thumbnails, "SUR_Thumbnail")
+            thumbnail = self.generate_thumbnail()
+            if thumbnail is not None:
+                self.add_thumbnail(thumbnail, "SUR_Thumbnail")
         except Exception as e:
             logger.error(f"failed to extract thumbnail: {e}")
 
@@ -97,27 +97,29 @@ class SurIngestor(CrucibleDatasetIngestor):
 
         im = self.handle_thumbnail_dimensions()
 
-        fg, ax = plt.subplots(1, 1, figsize=fig_size, dpi=dpi)
-        ax.imshow(im, cmap='gray')
-        ax.axis('off')
-        buf = io.BytesIO()
-        fg.savefig(buf, bbox_inches='tight', pad_inches=0.05, dpi=dpi)
-        im = Image.open(buf)
-        plt.close(fg)
+        if im is not None:
+            fg, ax = plt.subplots(1, 1, figsize=fig_size, dpi=dpi)
+            ax.imshow(im, cmap='gray')
+            ax.axis('off')
+            buf = io.BytesIO()
+            fg.savefig(buf, bbox_inches='tight', pad_inches=0.05, dpi=dpi)
+            im = Image.open(buf)
+            plt.close(fg)
         return im
     
     def handle_thumbnail_dimensions(self):
         dataset = self.dataset
         acquisition = self.general_info.get("acquisition_type", "")
 
-        if (acquisition == "HYPCard"):
+        if (acquisition == "HYP"):
             assert len(dataset["axes"]) == 3, "Thumbnail must be a 3-dimensional image"
             im = np.sum(np.array(dataset["data"]), axis=2) # Sum data across third dimension to generate 2D image
         elif (acquisition == "HAADF" or acquisition == "ROI"):
             assert len(dataset["axes"]) == 2, "Thumbnail must be a 2-dimensional image"
             im = np.array(dataset["data"])
         else:
-            raise ValueError("Image has unsupported number of dimensions for thumbnail generation.")
+            logger.info("Image has unsupported number of dimensions for thumbnail generation. No thumbnail generated.")
+            im = None
         
         return im
 
